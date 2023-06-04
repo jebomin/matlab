@@ -1,0 +1,84 @@
+clear all;
+close all;
+
+
+Ts = [ 0.01 0.01 0.01 0.02 0.04];
+delta = [0.02 0.04 0.08 0.04 0.04];
+N = [50 50 50 25 13];
+
+
+% Initialization
+eq_nTs = zeros(length(Ts), 1);
+mq_nTs = zeros(length(Ts), 1);
+e_nTs  = zeros(length(Ts), 1); 
+
+
+for i=1:length(Ts)
+    t = 0:Ts(i):Ts(i)*N(i);  
+    m = sin(2*pi*t);
+    
+    fid = fopen(sprintf('%d.txt',i), 'w');
+   
+    for j=1:N(i)
+        
+        e_nTs(i,j+1) = m(j+1)-mq_nTs(i, j );
+        eq_nTs(i,j+1) = delta(i)*sign(e_nTs(i,j+1));
+        mq_nTs(i,j+1) = mq_nTs(i, j ) + eq_nTs(i,j+1);
+        fprintf(fid, '%d\t', sign(e_nTs(i,j+1)) );
+        
+    end
+    
+    fclose(fid); 
+    
+    %figure;
+    figure;
+    plot(t,m);
+    hold on;
+    stairs(t, e_nTs(i,:));
+    hold on;
+    stairs(t, eq_nTs(i,:));
+    hold on;
+    stairs(t, mq_nTs(i,:) );
+    hold on;
+    
+    hold off;
+
+    
+    
+    % post processing : variance)(SIBAL)
+    result_Var(i) = sum(e_nTs(i,:).^2)/N(i);   
+    
+    
+    % Initialization
+    clear eq_nTs mq_nTs e_nTs;
+    eq_nTs = zeros(length(Ts), 1);
+    mq_nTs = zeros(length(Ts), 1);
+    e_nTs  = zeros(length(Ts), 1); 
+
+end
+
+
+clear t;
+
+sign_e = load(sprintf('%d.txt',2));
+t = 0:Ts(2):Ts(2)*N(2);  
+mq = zeros(1, N(2));
+
+for i=1:length(sign_e)
+    
+    if (sign_e(i) == 1)
+        mq(i+1) = mq(i) + delta(2)*1; 
+    elseif (sign_e(i) == -1)
+        mq(i+1) = mq(i) - delta(2)*1;
+    else
+        error('wrong input!');
+    end
+    
+end
+
+figure;
+stairs(t, mq);
+title(sprintf('Ts=%0.2f,  \\delta=%0.2f,  N=%d',Ts(2), delta(2), N(2) ) );
+xlabel('t'); ylabel('received signal');
+
+
